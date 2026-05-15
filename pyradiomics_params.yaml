@@ -1,0 +1,22 @@
+setting:
+  binWidth: 25
+  resampledPixelSpacing: [2, 2, 2]
+  interpolator: sitkBSpline
+  normalize: true
+  normalizeScale: 100
+
+imageType:
+  Original: {}
+  LoG:
+    sigma: [1.0, 2.0, 3.0]
+  Wavelet: {}
+
+featureClass:
+  firstorder: []
+  shape: []
+  glcm: []
+  glrlm: []
+  glszm: []
+  gldm: []
+  ngtdm: []
+

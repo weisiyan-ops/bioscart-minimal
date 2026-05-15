@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bioscart-minimal"
+version = "0.1.0"
+description = "BioSCART Minimal - CT-only tumor subregion research prototype"
+license = {text = "Proprietary"}
+requires-python = ">=3.9"
+
+dependencies = [
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
+    "pydicom>=2.3.0",
+    "SimpleITK>=2.1.0",
+    "scikit-image>=0.19.0",
+]
+
+[project.optional-dependencies]
+radiomics = ["pyradiomics>=3.0.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+bioscart = "bioscart_minimal.cli:main"
+
+[tool.setuptools]
+packages = ["bioscart_minimal", "bioscart_minimal.tests"]
+
+[tool.setuptools.package-dir]
+bioscart_minimal = "."
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
