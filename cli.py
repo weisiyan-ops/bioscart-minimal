@@ -23,6 +23,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ice3-metrics", default=None, help="Optional ICE3/EDIC metrics JSON for combined review")
     parser.add_argument("--strict-tps-geometry", action="store_true", help="Treat missing/mismatched DICOM geometry as hard failure")
     parser.add_argument("--no-rtstruct-export", action="store_true", help="Disable BioSCART RTSTRUCT export")
+    parser.add_argument(
+        "--sfrt-protocol",
+        default=None,
+        choices=["lung", "esophagus", "single_fraction"],
+        help="SFRT/SCART dose painting protocol: generates SIB objectives + ICE3 immune safety check",
+    )
     args = parser.parse_args(argv)
 
     config = BioSCARTRunConfig(
@@ -37,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
         pyradiomics_params=Path(args.pyradiomics_params) if args.pyradiomics_params else None,
         strict_tps_geometry=args.strict_tps_geometry,
         export_rtstruct=not args.no_rtstruct_export,
+        sfrt_protocol=args.sfrt_protocol,
     )
     result = BioSCARTService().run_case(config)
 
@@ -49,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Dose evaluation: {result.dose_evaluation_path}")
     if result.combined_review_path:
         print(f"Combined review: {result.combined_review_path}")
+    if result.sfrt_plan_path:
+        print(f"SFRT/SCART plan: {result.sfrt_plan_path}")
     return 0
 
 

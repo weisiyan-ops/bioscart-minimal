@@ -105,6 +105,50 @@ Useful options (`bioscart --help` for the full list):
 | `--strict-tps-geometry` | Treat missing/mismatched DICOM geometry as a hard failure. |
 | `--no-rtstruct-export` | Skip BioSCART RTSTRUCT export. |
 | `--ice3-metrics` | ICE3/EDIC metrics JSON for combined review. |
+| `--sfrt-protocol` | SFRT/SCART dose painting protocol (`lung`, `esophagus`, or `single_fraction`). |
+
+## SFRT/SCART Dose Painting
+
+BioSCART includes a SFRT (Spatially Fractionated Radiation Therapy) dose painting module that maps CT-based tumor subregions to SCART dose levels and generates Eclipse-compatible SIB optimization objectives.
+
+### Built-in protocols
+
+| Protocol | Site | Fractions | Peak | Valley | PVDR | Key feature |
+|----------|------|-----------|------|--------|------|-------------|
+| `lung` | Bulky NSCLC | 5 | 66.7 Gy | 20.0 Gy | 3.3:1 | Ablative core + immune-preserving periphery |
+| `esophagus` | Esophageal CRT | 28 | 58.8 Gy (2.1/fx) | 44.8 Gy (1.6/fx) | 1.3:1 | Lumen-sparing: peak only to Core (away from lumen) |
+| `single_fraction` | Any bulky | 1 | 15.0 Gy | 3.0 Gy | 5.0:1 | Classic LATTICE-style single fraction |
+
+### Lumen safety (esophageal protocol)
+
+The esophageal protocol enforces lumen-sparing dose painting. The `BSCART_Rim_5mm` region (which includes the luminal mucosal surface) always receives valley dose. Only the geometric `BSCART_Core` (interior, away from any surface) receives peak dose. This addresses the ARTDECO trial failure (JCO 2021), where unselected escalation to 61.6 Gy caused fistula and bleeding without improving outcomes. BioSCART-E peak (58.8 Gy) stays below the ARTDECO threshold and is applied only where geometrically safe.
+
+### ICE3 immune safety integration
+
+When `--ice3-metrics` is provided alongside `--sfrt-protocol`, the module checks the predicted ALC nadir against a protocol-specific threshold. If the SFRT plan would cause unacceptable lymphopenia, the output flags `IMMUNE RISK` with specific recommendations (reduce peak dose, add avoidance sectors, etc.).
+
+### Usage
+
+```powershell
+bioscart --dicom-dir C:\path\to\dicom --out-dir C:\path\to\output --gtv-name GTV --sfrt-protocol lung
+```
+
+With ICE3 immune safety check:
+
+```powershell
+bioscart --dicom-dir C:\path\to\dicom --out-dir C:\path\to\output --gtv-name GTV \
+    --sfrt-protocol esophagus --rtdose C:\path\to\RD.dcm --ice3-metrics C:\path\to\ice3.json
+```
+
+### Region-to-dose mapping
+
+| BioSCART Region | Biological Role | SFRT Dose Level |
+|----------------|-----------------|-----------------|
+| `BSCART_Core` | Radioresistant hypoxic core | **Peak** (ablative) |
+| `BSCART_CT_High_Q75` | Viable/enhancing tumor | **Peak** |
+| `BSCART_Texture_High_Q75` | Heterogeneous/resistant | **Intermediate** |
+| `BSCART_Rim_5mm` | Border/immune sanctuary | **Valley** (lumen-safe) |
+| `BSCART_CT_Low_Q25` | Necrotic/hypoxic surrogate | **Valley** |
 
 ## Outputs
 
@@ -117,6 +161,7 @@ Written to `--out-dir`:
 - `bioscart_regions_rtstruct.dcm`
 - `dose_evaluation.json` — when `--rtdose` is provided
 - `combined_review.json` — when ICE3/EDIC metrics are provided
+- `bioscart_sfrt_plan.json` — when `--sfrt-protocol` is provided (dose assignments, SIB objectives, immune safety)
 
 To review the result, load the original CT plus `bioscart_regions_rtstruct.dcm` in 3D Slicer or your TPS.
 
