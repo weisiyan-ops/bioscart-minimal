@@ -31,7 +31,8 @@ from .radiomics_runner import run_pyradiomics
 from .recommendations import build_recommendations, write_recommendations
 from .regions import build_five_gtv_regions, check_gtv_volume_for_radiomics
 from .rtstruct_exporter import export_bioscart_rtstruct
-from .sfrt_dose_logic import PROTOCOLS, build_sfrt_plan, write_sfrt_plan
+from .rtdose_exporter import export_prescription_rtdose
+from .sfrt_dose_logic import PROTOCOLS, assign_doses_to_regions, build_sfrt_plan, write_sfrt_plan
 
 
 @dataclass
@@ -63,6 +64,7 @@ class BioSCARTRunResult:
     dose_evaluation_path: Path | None
     combined_review_path: Path | None
     sfrt_plan_path: Path | None = None
+    sfrt_rtdose_path: Path | None = None
 
 
 class BioSCARTService:
@@ -162,6 +164,7 @@ class BioSCARTService:
             combined_review_path = write_combined_plan_review(combined, out_dir)
 
         sfrt_plan_path = None
+        sfrt_rtdose_path = None
         if config.sfrt_protocol:
             protocol_factory = PROTOCOLS.get(config.sfrt_protocol)
             if protocol_factory is None:
@@ -170,12 +173,20 @@ class BioSCARTService:
                     f"Available: {', '.join(PROTOCOLS.keys())}"
                 )
             protocol = protocol_factory()
+            assignments = assign_doses_to_regions(regions, protocol)
             sfrt_plan = build_sfrt_plan(
                 regions=regions,
                 protocol=protocol,
                 ice3_metrics=ice3_metrics,
             )
             sfrt_plan_path = write_sfrt_plan(sfrt_plan, out_dir)
+            sfrt_rtdose_path = export_prescription_rtdose(
+                assignments=assignments,
+                regions=regions,
+                ct=ct,
+                reference_rtstruct=rtstruct,
+                output_dir=out_dir / "dicom_export",
+            )
 
         manifest = {
             "schema_version": "bioscart.minimal.v0.2",
@@ -202,6 +213,7 @@ class BioSCARTService:
                 "dose_evaluation_json": str(dose_eval_path) if dose_eval_path else None,
                 "combined_review_json": str(combined_review_path) if combined_review_path else None,
                 "sfrt_plan_json": str(sfrt_plan_path) if sfrt_plan_path else None,
+                "sfrt_rtdose": str(sfrt_rtdose_path) if sfrt_rtdose_path else None,
             },
             "warnings": ct.warnings + gtv.warnings + geometry.warnings,
         }
@@ -216,6 +228,7 @@ class BioSCARTService:
             dose_evaluation_path=dose_eval_path,
             combined_review_path=combined_review_path,
             sfrt_plan_path=sfrt_plan_path,
+            sfrt_rtdose_path=sfrt_rtdose_path,
         )
 
 

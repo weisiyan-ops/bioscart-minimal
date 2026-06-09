@@ -58,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Combined review: {result.combined_review_path}")
     if result.sfrt_plan_path:
         print(f"SFRT/SCART plan: {result.sfrt_plan_path}")
+    if result.sfrt_rtdose_path:
+        print(f"SFRT prescription RTDOSE: {result.sfrt_rtdose_path}")
     return 0
 
 
