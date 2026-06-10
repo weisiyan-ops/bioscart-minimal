@@ -117,6 +117,7 @@ BioSCART includes a SFRT (Spatially Fractionated Radiation Therapy) dose paintin
 |----------|------|-----------|------|--------|------|-------------|
 | `lung` | Bulky NSCLC | 5 | 66.7 Gy | 20.0 Gy | 3.3:1 | Ablative core + immune-preserving periphery |
 | `esophagus` | Esophageal CRT | 28 | 58.8 Gy (2.1/fx) | 44.8 Gy (1.6/fx) | 1.3:1 | Lumen-sparing: peak only to Core (away from lumen) |
+| `cervix` | Cervical CRT | 28 | 64.4 Gy (2.3/fx) | 44.8 Gy (1.6/fx) | 1.4:1 | Hypoxia-targeted core boost + bladder/rectum sparing |
 | `single_fraction` | Any bulky | 1 | 15.0 Gy | 3.0 Gy | 5.0:1 | Classic LATTICE-style single fraction |
 
 ### Lumen safety (esophageal protocol)

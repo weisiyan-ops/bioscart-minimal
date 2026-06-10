@@ -26,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--sfrt-protocol",
         default=None,
-        choices=["lung", "esophagus", "single_fraction"],
+        choices=["lung", "esophagus", "cervix", "single_fraction"],
         help="SFRT/SCART dose painting protocol: generates SIB objectives + ICE3 immune safety check",
     )
     args = parser.parse_args(argv)

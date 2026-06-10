@@ -12,6 +12,7 @@ from bioscart_minimal.sfrt_dose_logic import (
     build_sfrt_plan,
     check_immune_safety,
     generate_sib_objectives,
+    scart_cervix_protocol,
     scart_esophagus_protocol,
     scart_lung_protocol,
     scart_single_fraction_protocol,
@@ -81,6 +82,32 @@ class TestProtocols:
         """Peak dose must be below ARTDECO failure threshold of 61.6 Gy."""
         p = scart_esophagus_protocol(28)
         assert p.levels["peak"].total_dose_gy < 61.6
+
+    def test_cervix_protocol_defaults(self):
+        p = scart_cervix_protocol(28)
+        assert p.protocol_id == "SCART-CERVIX-v1"
+        assert p.site == "cervix"
+        assert p.fractions == 28
+
+    def test_cervix_protocol_doses(self):
+        p = scart_cervix_protocol(28)
+        assert p.levels["peak"].dose_per_fraction_gy == 2.3
+        assert p.levels["peak"].total_dose_gy == 64.4
+        assert p.levels["intermediate"].total_dose_gy == 50.4
+        assert p.levels["valley"].total_dose_gy == 44.8
+
+    def test_cervix_peak_higher_than_esophagus(self):
+        """Cervix tolerates higher boost -- no thin lumen risk."""
+        c = scart_cervix_protocol(28)
+        e = scart_esophagus_protocol(28)
+        assert c.levels["peak"].dose_per_fraction_gy > e.levels["peak"].dose_per_fraction_gy
+
+    def test_cervix_valley_protects_hollow_organs(self):
+        p = scart_cervix_protocol(28)
+        assert "hollow_organ" in p.levels["valley"].role
+
+    def test_cervix_in_registry(self):
+        assert "cervix" in PROTOCOLS
 
     def test_single_fraction_protocol(self):
         p = scart_single_fraction_protocol()
@@ -160,6 +187,23 @@ class TestRegionAssignment:
         rim = [a for a in assignments if a.region_name == "BSCART_Rim_5mm"][0]
         assert rim.dose_level == "valley"
         assert rim.total_dose_gy == 44.8
+
+    def test_cervix_rim_protects_hollow_organs(self, mock_regions):
+        """Rim region must get valley dose in cervix protocol (bladder/rectum protection)."""
+        p = scart_cervix_protocol(28)
+        assignments = assign_doses_to_regions(mock_regions, p)
+        rim = [a for a in assignments if a.region_name == "BSCART_Rim_5mm"][0]
+        assert rim.dose_level == "valley"
+        assert rim.total_dose_gy == 44.8
+
+    def test_cervix_core_gets_higher_peak_than_esophagus(self, mock_regions):
+        c = scart_cervix_protocol(28)
+        e = scart_esophagus_protocol(28)
+        c_assign = assign_doses_to_regions(mock_regions, c)
+        e_assign = assign_doses_to_regions(mock_regions, e)
+        c_core = [a for a in c_assign if a.region_name == "BSCART_Core"][0]
+        e_core = [a for a in e_assign if a.region_name == "BSCART_Core"][0]
+        assert c_core.total_dose_gy > e_core.total_dose_gy
 
 
 # ── SIB Objectives Tests ────────────────────────────────────────────
@@ -287,6 +331,14 @@ class TestBuildSFRTPlan:
         plan = build_sfrt_plan(mock_regions, p)
         pvdr = plan["dose_summary"]["actual_pvdr"]
         assert pvdr < 2.0, "Esophageal PVDR should be modest for conventional fractionation"
+
+    def test_cervix_plan(self, mock_regions):
+        p = scart_cervix_protocol(28)
+        plan = build_sfrt_plan(mock_regions, p)
+        assert plan["protocol"]["protocol_id"] == "SCART-CERVIX-v1"
+        assert plan["dose_summary"]["peak_total_gy"] == 64.4
+        assert plan["dose_summary"]["valley_total_gy"] == 44.8
+        assert plan["dose_summary"]["actual_pvdr"] is not None
 
     def test_write_sfrt_plan(self, mock_regions, tmp_path):
         p = scart_lung_protocol(5)

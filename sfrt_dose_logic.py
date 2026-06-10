@@ -215,9 +215,80 @@ def scart_single_fraction_protocol() -> SCARTProtocol:
     )
 
 
+def scart_cervix_protocol(fractions: int = 28) -> SCARTProtocol:
+    """SCART protocol for cervical cancer (conventional fractionation SIB).
+
+    Cervical SCC is famously hypoxic -- the Core (low-density, necrotic)
+    represents the radioresistant hypoxic center that benefits most from
+    dose escalation or radiosensitizer targeting.
+
+    Geometry is safer than esophagus: no thin-walled lumen surrounding
+    the tumor. Bladder and rectum are adjacent but separated by tissue
+    planes. The Rim region protects the bladder/rectum interface.
+
+    CT radiomics predict hypoxia and outcome in cervical cancer (validated
+    in multiple studies). MRI-guided adaptive RT (EMBRACE-II) shows dose
+    escalation works but requires expensive MR-linac. BioSCART-Cervix
+    provides CT-based dose painting on standard linacs -- accessible in
+    LMICs where 85% of cervical cancer occurs.
+    """
+    return SCARTProtocol(
+        protocol_id="SCART-CERVIX-v1",
+        site="cervix",
+        description="BioSCART-Cervix: CT-guided SIB for cervical CRT -- hypoxia-targeted core boost + pelvic ICE3 immune protection",
+        fractions=fractions,
+        levels={
+            "peak": SCARTDoseLevel(
+                name="peak",
+                dose_per_fraction_gy=2.3,
+                total_dose_gy=round(2.3 * fractions, 1),
+                fractions=fractions,
+                role="hypoxia_targeted_core",
+                rationale="Escalated dose to hypoxic/radioresistant core. Cervical tumors tolerate "
+                          "higher boost than esophagus (no lumen fistula risk). EMBRACE-II validates "
+                          "dose escalation concept in cervix. CT low-density core correlates with "
+                          "pathologic hypoxia in cervical SCC.",
+            ),
+            "intermediate": SCARTDoseLevel(
+                name="intermediate",
+                dose_per_fraction_gy=1.8,
+                total_dose_gy=round(1.8 * fractions, 1),
+                fractions=fractions,
+                role="standard_coverage",
+                rationale="Standard CRT dose (50.4 Gy) to viable tumor and heterogeneous regions",
+            ),
+            "valley": SCARTDoseLevel(
+                name="valley",
+                dose_per_fraction_gy=1.6,
+                total_dose_gy=round(1.6 * fractions, 1),
+                fractions=fractions,
+                role="hollow_organ_sparing_immune_sanctuary",
+                rationale="De-escalated dose to Rim region at bladder/rectum interface. "
+                          "Protects adjacent hollow organ walls from late toxicity (fistula, "
+                          "radiation cystitis/proctitis) while preserving immune cell access "
+                          "and reducing pelvic bone marrow dose (major driver of lymphopenia "
+                          "in pelvic RT).",
+            ),
+        },
+        pvdr_target=1.4,
+        ice3_alc_nadir_threshold=0.5,
+        notes=[
+            "Cervical SCC: hypoxia is the main resistance mechanism -- CT_Low_Q25 correlates with pathologic hypoxia",
+            "Geometry safer than esophagus: no thin-walled lumen, bladder/rectum separated by tissue planes",
+            "Peak 64.4 Gy is within EMBRACE-II dose escalation range (validated concept)",
+            "Pelvic ICE3 (7-compartment) checks bone marrow + iliac vessel blood dose",
+            "Bone marrow dose is the primary driver of lymphopenia in pelvic RT (not heart like thoracic)",
+            "Rim protects bladder/rectum wall -- reduces late cystitis and proctitis",
+            "CT-only approach democratizes precision RT for LMICs without MR-linac or PET access",
+            "85% of cervical cancer occurs in low-resource settings where CT is the only imaging available",
+        ],
+    )
+
+
 PROTOCOLS = {
     "lung": scart_lung_protocol,
     "esophagus": scart_esophagus_protocol,
+    "cervix": scart_cervix_protocol,
     "single_fraction": scart_single_fraction_protocol,
 }
 
